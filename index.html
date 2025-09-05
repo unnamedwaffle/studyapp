@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-dark': '#4B4AC2'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .timer-circle {
+            transform-origin: center;
+            transition: stroke-dashoffset 1s linear;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.05); opacity: 0; }
+        }
+        
+        .study-session {
+            transition: all 0.2s ease;
+        }
+        
+        .study-session:hover {
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <h1 class="text-2xl font-bold">📚 Study Tracker</h1>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Left Sidebar - Subject Management -->
+            <div class="lg:col-span-1">
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4">📖 Subjects</h2>
+                    
+                    <!-- Add Subject Form -->
+                    <div class="mb-4">
+                        <div class="flex gap-2">
+                            <input type="text" id="newSubject" placeholder="Add subject..." 
+                                   class="flex-1 px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                            <button onclick="addSubject()" 
+                                    class="px-3 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
+                                ➕
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Subjects List -->
+                    <div id="subjectsList" class="space-y-2">
+                        <!-- Subjects will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="lg:col-span-2">
+                <!-- Timer Section -->
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 shadow-lg mb-6">
+                    <h2 class="text-lg font-semibold mb-4">⏰ Study Timer</h2>
+                    
+                    <!-- Timer Display -->
+                    <div class="text-center mb-6">
+                        <div class="relative inline-block">
+                            <svg class="w-32 h-32 transform -rotate-90">
+                                <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="4" fill="none" class="text-gray-300 dark:text-gray-600"/>
+                                <circle id="timerCircle" cx="64" cy="64" r="56" stroke="currentColor" stroke-width="4" fill="none" 
+                                        class="text-primary timer-circle" stroke-linecap="round"/>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div id="timerDisplay" class="text-2xl font-mono font-bold">25:00</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timer Controls -->
+                    <div class="flex justify-center gap-3 mb-4">
+                        <button id="startPauseBtn" onclick="toggleTimer()" 
+                                class="px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">
+                            ▶️ Start
+                        </button>
+                        <button onclick="stopTimer()" 
+                                class="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">
+                            ⏹️ Stop
+                        </button>
+                        <button onclick="resetTimer()" 
+                                class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
+                            🔄 Reset
+                        </button>
+                    </div>
+                    
+                    <!-- Timer Settings -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Subject</label>
+                            <select id="currentSubject" class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="">Select subject...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Duration (minutes)</label>
+                            <select id="timerDuration" onchange="updateTimerDuration()" class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="25">25 (Pomodoro)</option>
+                                <option value="15">15</option>
+                                <option value="30">30</option>
+                                <option value="45">45</option>
+                                <option value="60">60</option>
+                                <option value="90">90</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Pomodoro Mode -->
+                    <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="pomodoroMode" class="mr-2">
+                            <span class="text-sm">🍅 Pomodoro Mode (25min work + 5min break)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Study Log -->
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">📋 Study Log</h2>
+                        <button onclick="showAddSessionModal()" 
+                                class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors text-sm">
+                            ➕ Add Session
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <div id="studyLog" class="space-y-2">
+                            <!-- Study sessions will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - Statistics -->
+            <div class="lg:col-span-1">
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4">📊 Statistics</h2>
+                    
+                    <!-- Quick Stats -->
+                    <div class="space-y-3 mb-6">
+                        <div class="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
+                            <div id="todayTotal" class="text-2xl font-bold text-primary">0h 0m</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Today</div>
+                        </div>
+                        <div class="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
+                            <div id="weekTotal" class="text-2xl font-bold text-green-500">0h 0m</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">This Week</div>
+                        </div>
+                        <div class="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
+                            <div id="studyStreak" class="text-2xl font-bold text-orange-500">0</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Day Streak</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Subject Chart -->
+                    <div class="mb-4">
+                        <h3 class="text-sm font-medium mb-2">Subject Breakdown</h3>
+                        <div class="relative h-48">
+                            <canvas id="subjectChart"></canvas>
+                            <div id="noDataMessage" class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm hidden">
+                                No study data yet
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Import/Export Data -->
+                    <div class="space-y-2">
+                        <button onclick="importData()" 
+                                class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors text-sm">
+                            📥 Import Data
+                        </button>
+                        <button onclick="exportData()" 
+                                class="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm">
+                            📤 Export Data
+                        </button>
+                    </div>
+                    
+                    <!-- Hidden file input for import -->
+                    <input type="file" id="importFile" accept=".csv" style="display: none;" onchange="handleFileImport(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Session Modal -->
+    <div id="addSessionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold mb-4">Add Study Session</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Subject</label>
+                    <select id="modalSubject" class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="">Select subject...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Date</label>
+                    <input type="date" id="modalDate" class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Duration (minutes)</label>
+                    <input type="number" id="modalDuration" min="1" placeholder="60" class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="hideAddSessionModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Cancel</button>
+                <button onclick="addManualSession()" class="px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded">Add Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 hidden">
+        <div id="notificationContent"></div>
+    </div>
+
+    <script>
+        // App State
+        let subjects = ['Mathematics', 'Science', 'History', 'English'];
+        let studySessions = [];
+        let timerState = {
+            isRunning: false,
+            isPaused: false,
+            currentTime: 25 * 60, // 25 minutes in seconds
+            totalTime: 25 * 60,
+            startTime: null,
+            currentSubject: '',
+            isBreak: false
+        };
+        let timerInterval = null;
+        let subjectChart = null;
+
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSubjectsList();
+            updateSubjectSelects();
+            updateTimerDisplay();
+            updateTimerCircle();
+            updateStudyLog();
+            updateStatistics();
+            initChart();
+            
+            // Set today's date in modal
+            document.getElementById('modalDate').value = new Date().toISOString().split('T')[0];
+        });
+
+        // Subject Management
+        function addSubject() {
+            const input = document.getElementById('newSubject');
+            const subjectName = input.value.trim();
+            
+            if (!subjectName) {
+                showNotification('Please enter a subject name', 'error');
+                return;
+            }
+            
+            if (subjects.includes(subjectName)) {
+                showNotification('Subject already exists', 'error');
+                return;
+            }
+            
+            subjects.push(subjectName);
+            input.value = '';
+            updateSubjectsList();
+            updateSubjectSelects();
+            showNotification('Subject added successfully', 'success');
+        }
+
+        function removeSubject(subjectName) {
+            showConfirmDialog(`Are you sure you want to remove "${subjectName}"?`, () => {
+                subjects = subjects.filter(s => s !== subjectName);
+                updateSubjectsList();
+                updateSubjectSelects();
+                updateStatistics();
+                showNotification('Subject removed successfully', 'success');
+            });
+        }
+
+        function updateSubjectsList() {
+            const container = document.getElementById('subjectsList');
+            container.innerHTML = subjects.map(subject => `
+                <div class="flex items-center justify-between p-2 bg-white dark:bg-gray-700 rounded-md">
+                    <span class="text-sm">${subject}</span>
+                    <button onclick="removeSubject('${subject}')" 
+                            class="text-red-500 hover:text-red-700 text-sm">
+                        🗑️
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function updateSubjectSelects() {
+            const selects = ['currentSubject', 'modalSubject'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Select subject...</option>' +
+                    subjects.map(subject => `<option value="${subject}">${subject}</option>`).join('');
+                if (subjects.includes(currentValue)) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        // Timer Functions
+        function toggleTimer() {
+            const btn = document.getElementById('startPauseBtn');
+            const subjectSelect = document.getElementById('currentSubject');
+            
+            if (!timerState.isRunning && !timerState.isPaused) {
+                // Start new session
+                if (!subjectSelect.value) {
+                    showNotification('Please select a subject', 'error');
+                    return;
+                }
+                
+                timerState.currentSubject = subjectSelect.value;
+                timerState.startTime = Date.now();
+                timerState.isRunning = true;
+                btn.textContent = '⏸️ Pause';
+                
+                timerInterval = setInterval(updateTimer, 1000);
+                showNotification('Study session started!', 'success');
+                
+            } else if (timerState.isRunning) {
+                // Pause
+                timerState.isRunning = false;
+                timerState.isPaused = true;
+                btn.textContent = '▶️ Resume';
+                clearInterval(timerInterval);
+                
+            } else if (timerState.isPaused) {
+                // Resume
+                timerState.isRunning = true;
+                timerState.isPaused = false;
+                btn.textContent = '⏸️ Pause';
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+        }
+
+        function stopTimer() {
+            if (timerState.isRunning || timerState.isPaused) {
+                const studyTime = Math.ceil((timerState.totalTime - timerState.currentTime) / 60);
+                
+                if (studyTime > 0) {
+                    recordStudySession(timerState.currentSubject, studyTime);
+                    showNotification(`Session completed! ${studyTime} minutes studied.`, 'success');
+                }
+                
+                resetTimerState();
+            }
+        }
+
+        function resetTimer() {
+            resetTimerState();
+            showNotification('Timer reset', 'info');
+        }
+
+        function resetTimerState() {
+            clearInterval(timerInterval);
+            timerState.isRunning = false;
+            timerState.isPaused = false;
+            timerState.currentTime = timerState.totalTime;
+            timerState.startTime = null;
+            timerState.currentSubject = '';
+            
+            document.getElementById('startPauseBtn').textContent = '▶️ Start';
+            updateTimerDisplay();
+            updateTimerCircle();
+        }
+
+        function updateTimer() {
+            timerState.currentTime--;
+            updateTimerDisplay();
+            updateTimerCircle();
+            
+            if (timerState.currentTime <= 0) {
+                // Timer completed
+                const studyTime = Math.ceil(timerState.totalTime / 60);
+                recordStudySession(timerState.currentSubject, studyTime);
+                
+                const pomodoroMode = document.getElementById('pomodoroMode').checked;
+                
+                if (pomodoroMode && !timerState.isBreak) {
+                    // Start break
+                    showNotification('Study session complete! Starting 5-minute break.', 'success');
+                    timerState.isBreak = true;
+                    timerState.totalTime = 5 * 60; // 5 minutes
+                    timerState.currentTime = 5 * 60;
+                    updateTimerDisplay();
+                    updateTimerCircle();
+                } else {
+                    // End session
+                    showNotification('Session completed!', 'success');
+                    resetTimerState();
+                }
+            }
+        }
+
+        function updateTimerDuration() {
+            const duration = parseInt(document.getElementById('timerDuration').value);
+            timerState.totalTime = duration * 60;
+            timerState.currentTime = duration * 60;
+            updateTimerDisplay();
+            updateTimerCircle();
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerState.currentTime / 60);
+            const seconds = timerState.currentTime % 60;
+            document.getElementById('timerDisplay').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateTimerCircle() {
+            const circle = document.getElementById('timerCircle');
+            const radius = 56;
+            const circumference = 2 * Math.PI * radius;
+            const progress = (timerState.totalTime - timerState.currentTime) / timerState.totalTime;
+            const strokeDashoffset = circumference - (progress * circumference);
+            
+            circle.style.strokeDasharray = circumference;
+            circle.style.strokeDashoffset = strokeDashoffset;
+        }
+
+        // Study Session Management
+        function recordStudySession(subject, duration) {
+            const session = {
+                id: Date.now(),
+                subject: subject,
+                duration: duration,
+                date: new Date().toISOString(),
+                timestamp: Date.now()
+            };
+            
+            studySessions.unshift(session);
+            updateStudyLog();
+            updateStatistics();
+        }
+
+        function removeStudySession(sessionId) {
+            showConfirmDialog('Are you sure you want to remove this study session?', () => {
+                studySessions = studySessions.filter(s => s.id !== sessionId);
+                updateStudyLog();
+                updateStatistics();
+                showNotification('Study session removed', 'success');
+            });
+        }
+
+        function updateStudyLog() {
+            const container = document.getElementById('studyLog');
+            
+            if (studySessions.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-4">No study sessions yet. Start your first session!</div>';
+                return;
+            }
+            
+            container.innerHTML = studySessions.slice(0, 10).map(session => {
+                const date = new Date(session.date);
+                const dateStr = date.toLocaleDateString();
+                const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                return `
+                    <div class="study-session flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-md">
+                        <div class="flex-1">
+                            <div class="font-medium">${session.subject}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                ${dateStr} at ${timeStr} • ${session.duration} min
+                            </div>
+                        </div>
+                        <button onclick="removeStudySession(${session.id})" 
+                                class="text-red-500 hover:text-red-700 ml-2">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Modal Functions
+        function showAddSessionModal() {
+            document.getElementById('addSessionModal').classList.remove('hidden');
+        }
+
+        function hideAddSessionModal() {
+            document.getElementById('addSessionModal').classList.add('hidden');
+            document.getElementById('modalSubject').value = '';
+            document.getElementById('modalDuration').value = '';
+        }
+
+        function addManualSession() {
+            const subject = document.getElementById('modalSubject').value;
+            const date = document.getElementById('modalDate').value;
+            const duration = parseInt(document.getElementById('modalDuration').value);
+            
+            if (!subject || !date || !duration || duration < 1) {
+                showNotification('Please fill in all fields correctly', 'error');
+                return;
+            }
+            
+            const session = {
+                id: Date.now(),
+                subject: subject,
+                duration: duration,
+                date: new Date(date + 'T12:00:00').toISOString(),
+                timestamp: new Date(date + 'T12:00:00').getTime()
+            };
+            
+            studySessions.unshift(session);
+            studySessions.sort((a, b) => b.timestamp - a.timestamp);
+            
+            hideAddSessionModal();
+            updateStudyLog();
+            updateStatistics();
+            showNotification('Study session added successfully', 'success');
+        }
+
+        // Statistics
+        function updateStatistics() {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            
+            // Today's total
+            const todayMinutes = studySessions
+                .filter(s => new Date(s.date) >= today)
+                .reduce((total, s) => total + s.duration, 0);
+            
+            // Week's total
+            const weekMinutes = studySessions
+                .filter(s => new Date(s.date) >= weekStart)
+                .reduce((total, s) => total + s.duration, 0);
+            
+            // Study streak
+            let streak = 0;
+            const sortedDates = [...new Set(studySessions.map(s => 
+                new Date(s.date).toDateString()
+            ))].sort((a, b) => new Date(b) - new Date(a));
+            
+            for (let i = 0; i < sortedDates.length; i++) {
+                const checkDate = new Date(today);
+                checkDate.setDate(today.getDate() - i);
+                
+                if (sortedDates.includes(checkDate.toDateString())) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+            
+            document.getElementById('todayTotal').textContent = formatTime(todayMinutes);
+            document.getElementById('weekTotal').textContent = formatTime(weekMinutes);
+            document.getElementById('studyStreak').textContent = streak;
+            
+            updateChart();
+        }
+
+        function formatTime(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours}h ${mins}m`;
+        }
+
+        // Chart Functions
+        function initChart() {
+            const ctx = document.getElementById('subjectChart').getContext('2d');
+            subjectChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#5D5CDE', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                            '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10,
+                                font: {
+                                    size: 10
+                                },
+                                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151',
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const hours = Math.floor(value / 60);
+                                    const minutes = value % 60;
+                                    return `${label}: ${hours}h ${minutes}m`;
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        arc: {
+                            borderWidth: 0
+                        }
+                    }
+                }
+            });
+            updateChart(); // Initial update
+        }
+
+        function updateChart() {
+            const subjectData = {};
+            studySessions.forEach(session => {
+                subjectData[session.subject] = (subjectData[session.subject] || 0) + session.duration;
+            });
+            
+            const labels = Object.keys(subjectData);
+            const data = Object.values(subjectData);
+            const noDataMessage = document.getElementById('noDataMessage');
+            const canvas = document.getElementById('subjectChart');
+            
+            if (labels.length === 0) {
+                // No data - show message and hide chart
+                noDataMessage.classList.remove('hidden');
+                canvas.style.display = 'none';
+            } else {
+                // Has data - show chart and hide message
+                noDataMessage.classList.add('hidden');
+                canvas.style.display = 'block';
+                
+                subjectChart.data.labels = labels;
+                subjectChart.data.datasets[0].data = data;
+                
+                // Update legend colors for dark mode
+                subjectChart.options.plugins.legend.labels.color = 
+                    document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151';
+                
+                subjectChart.update('none'); // Disable animation for better performance
+            }
+        }
+
+        // Import/Export Data
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+                showNotification('Please select a CSV file', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csvContent = e.target.result;
+                    parseAndImportCSV(csvContent);
+                } catch (error) {
+                    showNotification('Error reading file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
+        }
+
+        function parseAndImportCSV(csvContent) {
+            const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line);
+            
+            if (lines.length < 2) {
+                showNotification('CSV file appears to be empty or invalid', 'error');
+                return;
+            }
+            
+            // Check header
+            const header = lines[0].toLowerCase();
+            if (!header.includes('subject') || !header.includes('date') || !header.includes('duration')) {
+                showNotification('Invalid CSV format. Expected columns: Subject, Date, Duration (minutes)', 'error');
+                return;
+            }
+            
+            const importedSessions = [];
+            const newSubjects = new Set(subjects);
+            let importErrors = 0;
+            
+            for (let i = 1; i < lines.length; i++) {
+                try {
+                    // Parse CSV line (handles quoted fields)
+                    const fields = parseCSVLine(lines[i]);
+                    
+                    if (fields.length < 3) {
+                        importErrors++;
+                        continue;
+                    }
+                    
+                    const subject = fields[0].trim();
+                    const dateStr = fields[1].trim();
+                    const duration = parseInt(fields[2]);
+                    
+                    // Validate data
+                    if (!subject || !dateStr || !duration || duration < 1) {
+                        importErrors++;
+                        continue;
+                    }
+                    
+                    // Parse date (handle various formats)
+                    let sessionDate;
+                    try {
+                        // Try parsing as MM/DD/YYYY or DD/MM/YYYY or YYYY-MM-DD
+                        sessionDate = new Date(dateStr);
+                        if (isNaN(sessionDate.getTime())) {
+                            // Try manual parsing for MM/DD/YYYY format
+                            const dateParts = dateStr.split('/');
+                            if (dateParts.length === 3) {
+                                sessionDate = new Date(dateParts[2], dateParts[0] - 1, dateParts[1]);
+                            }
+                        }
+                        
+                        if (isNaN(sessionDate.getTime())) {
+                            importErrors++;
+                            continue;
+                        }
+                    } catch (e) {
+                        importErrors++;
+                        continue;
+                    }
+                    
+                    // Add subject if it doesn't exist
+                    newSubjects.add(subject);
+                    
+                    // Create session
+                    const session = {
+                        id: Date.now() + i, // Ensure unique IDs
+                        subject: subject,
+                        duration: duration,
+                        date: sessionDate.toISOString(),
+                        timestamp: sessionDate.getTime()
+                    };
+                    
+                    importedSessions.push(session);
+                    
+                } catch (error) {
+                    importErrors++;
+                }
+            }
+            
+            if (importedSessions.length === 0) {
+                showNotification('No valid study sessions found in the CSV file', 'error');
+                return;
+            }
+            
+            // Confirm import
+            showConfirmDialog(
+                `Import ${importedSessions.length} study sessions?${importErrors > 0 ? ` (${importErrors} rows had errors and will be skipped)` : ''}`,
+                () => {
+                    // Update subjects
+                    subjects = Array.from(newSubjects).sort();
+                    
+                    // Add sessions (avoid duplicates based on subject, date, and duration)
+                    importedSessions.forEach(newSession => {
+                        const isDuplicate = studySessions.some(existing => 
+                            existing.subject === newSession.subject &&
+                            Math.abs(new Date(existing.date).getTime() - new Date(newSession.date).getTime()) < 24 * 60 * 60 * 1000 && // Same day
+                            existing.duration === newSession.duration
+                        );
+                        
+                        if (!isDuplicate) {
+                            studySessions.push(newSession);
+                        }
+                    });
+                    
+                    // Sort sessions by timestamp (newest first)
+                    studySessions.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // Update UI
+                    updateSubjectsList();
+                    updateSubjectSelects();
+                    updateStudyLog();
+                    updateStatistics();
+                    
+                    showNotification(
+                        `Successfully imported ${importedSessions.length} study sessions!${importErrors > 0 ? ` (${importErrors} rows were skipped due to errors)` : ''}`, 
+                        'success'
+                    );
+                }
+            );
+        }
+
+        function parseCSVLine(line) {
+            const fields = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        // Escaped quote
+                        current += '"';
+                        i++; // Skip next quote
+                    } else {
+                        // Toggle quote state
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    // Field separator
+                    fields.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            // Add last field
+            fields.push(current.trim());
+            
+            // Remove quotes from fields
+            return fields.map(field => {
+                if (field.startsWith('"') && field.endsWith('"')) {
+                    return field.slice(1, -1);
+                }
+                return field;
+            });
+        }
+
+        function exportData() {
+            const csvContent = 'Subject,Date,Duration (minutes)\n' +
+                studySessions.map(session => 
+                    `"${session.subject}","${new Date(session.date).toLocaleDateString()}","${session.duration}"`
+                ).join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `study-log-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Data exported successfully', 'success');
+        }
+
+        // Utility Functions
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            const content = document.getElementById('notificationContent');
+            
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            
+            content.innerHTML = `
+                <div class="${colors[type]} text-white px-4 py-2 rounded-lg">
+                    ${message}
+                </div>
+            `;
+            
+            notification.classList.remove('hidden');
+            notification.classList.add('fade-in');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+                notification.classList.remove('fade-in');
+            }, 3000);
+        }
+
+        function showConfirmDialog(message, onConfirm) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">${message}</p>
+                    <div class="flex justify-end space-x-3">
+                        <button class="cancel-btn px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Cancel</button>
+                        <button class="confirm-btn px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded">Confirm</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.querySelector('.cancel-btn').onclick = () => modal.remove();
+            modal.querySelector('.confirm-btn').onclick = () => {
+                modal.remove();
+                onConfirm();
+            };
+            
+            document.body.appendChild(modal);
+        }
+
+        // Add Enter key support for subject input
+        document.getElementById('newSubject').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addSubject();
+            }
+        });
+    </script>
+</body>
+</html>
